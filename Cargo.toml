@@ -1,7 +1,7 @@
 [package]
-name = "pluggable_interrupt_template"
+name = "fish_food"
 version = "0.3.1"
-authors = ["gjf2a <ferrer@hendrix.edu>"]
+authors = ["astoyanow <astoyanow13@gmail.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
