@@ -6,7 +6,7 @@ use pc_keyboard::{DecodedKey, KeyCode};
 use num::traits::SaturatingAdd;
 
 #[derive(Copy,Debug,Clone,Eq,PartialEq)]
-pub struct LetterMover {
+pub struct Ship {
     letters: [char; BUFFER_WIDTH],
     num_letters: ModNumC<usize, BUFFER_WIDTH>,
     next_letter: ModNumC<usize, BUFFER_WIDTH>,
@@ -16,9 +16,9 @@ pub struct LetterMover {
     dy: ModNumC<usize, BUFFER_HEIGHT>
 }
 
-impl LetterMover {
+impl Ship {
     pub fn new() -> Self {
-        LetterMover {
+        Ship {
             letters: ['A'; BUFFER_WIDTH],
             num_letters: ModNumC::new(1),
             next_letter: ModNumC::new(1),
@@ -88,6 +88,74 @@ impl LetterMover {
             self.letters[self.next_letter.a()] = key;
             self.next_letter += 1;
             self.num_letters = self.num_letters.saturating_add(&ModNumC::new(1));
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub enum Direction {
+    Up, Down, Left, Right
+}
+
+pub struct Laser {
+    pub beam: [char; 6],
+    pub beam_len: ModNumC<usize, 6>,
+    pub col: ModNumC<usize, BUFFER_WIDTH>,
+    pub row: ModNumC<usize, BUFFER_HEIGHT>,
+    pub is_vertical: bool,
+    pub direction: Direction
+}
+
+impl Laser {
+    pub fn new() -> Self {
+        Laser {
+            beam: ['|'; 6],
+            beam_len: ModNumC::new(2),
+            col: ModNumC::new(BUFFER_WIDTH/2),
+            row: ModNumC::new(BUFFER_HEIGHT/2),
+            is_vertical: true,
+            direction: Direction::Down,
+        }
+
+    }
+
+    fn draw_laser(&self) {
+        for (i, x) in self.laser_iter().enumerate() {
+            plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Green, Color::Black));
+        }
+    }
+
+    fn laser_iter(&self) -> impl Iterator<Item=usize> {
+        ModNumIterator::new(self.col)
+            .take(self.beam_len.a())
+            .map(|m| m.a())
+    }
+
+    fn remove_laser(&self) {
+        for x in self.laser_iter() {
+            plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
+        }
+    }
+
+    pub fn tick(&mut self){
+        self.remove_laser();
+        self.update_position();
+        self.draw_laser();
+    }
+
+    fn update_position(&mut self) {
+        if self.is_vertical{
+            if self.direction == Direction::Down{
+                self.row += 1
+            } else {
+                self.row -= 1
+            }
+        } else {
+            if self.direction == Direction::Right {
+                self.col += 1
+            } else {
+                self.col -= 1
+            }
         }
     }
 }
