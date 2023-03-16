@@ -55,6 +55,8 @@ impl Ship {
     fn draw_current(&self) {
         for (i, x) in self.letter_columns().enumerate() {
             plot(self.letters[i], x, self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+            //plot('A', x, self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+
         }
     }
 
@@ -66,32 +68,30 @@ impl Ship {
     }
 
     fn handle_raw(&mut self, key: KeyCode) {
-        let future: Ship = Ship; 
+        //let future: &mut Ship = self; 
         match key {
             KeyCode::ArrowLeft => {
                 self.dx -= 1;
-                self.letters = ["<", BUFFER_WIDTH];
+                self.letters = ['<'; BUFFER_WIDTH];
             }
             KeyCode::ArrowRight => {
                 self.dx += 1;
-                self.letters = [">", BUFFER_WIDTH];
+                self.letters = ['>'; BUFFER_WIDTH];
 
             }
             KeyCode::ArrowUp => {
                 self.dy -= 1;
-                self.letters = ["A", BUFFER_WIDTH];
+                self.letters = ['A'; BUFFER_WIDTH];
 
             }
             KeyCode::ArrowDown => {
                 self.dy += 1;
-                self.letters = ["V", BUFFER_WIDTH];
+                self.letters = ['V'; BUFFER_WIDTH];
 
             }
             _ => {}
         }
-        if !future.is_colliding(laser){
-            Ship = future;
-        }
+        
     }
 
     fn handle_unicode(&mut self, key: char) {
@@ -102,17 +102,6 @@ impl Ship {
         }
     }
 
-    pub fn is_colliding(&self, laser: &Laser) -> bool{ 
-        for x in laser.laser_iter(){
-            //not sure if x is a single int or a coord duple
-            //also not sure if x same type as self.dx, structure of the ficntion 
-            //should ben fine though
-            if self.dx == x || self.dy == x{
-                return true;
-            }
-            return false;
-        }   
-    }
 }
 
 #[derive(PartialEq)]
@@ -148,7 +137,7 @@ impl Laser {
         }
     }
 
-    fn laser_iter(&self) -> impl Iterator<Item=usize> {
+    pub fn laser_iter(&self) -> impl Iterator<Item=usize> {
         ModNumIterator::new(self.col)
             .take(self.beam_len.a())
             .map(|m| m.a())
