@@ -69,15 +69,22 @@ impl Ship {
         match key {
             KeyCode::ArrowLeft => {
                 self.dx -= 1;
+                self.letters = ["<", BUFFER_WIDTH];
             }
             KeyCode::ArrowRight => {
                 self.dx += 1;
+                self.letters = [">", BUFFER_WIDTH];
+
             }
             KeyCode::ArrowUp => {
                 self.dy -= 1;
+                self.letters = ["A", BUFFER_WIDTH];
+
             }
             KeyCode::ArrowDown => {
                 self.dy += 1;
+                self.letters = ["V", BUFFER_WIDTH];
+
             }
             _ => {}
         }
