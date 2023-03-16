@@ -66,6 +66,7 @@ impl Ship {
     }
 
     fn handle_raw(&mut self, key: KeyCode) {
+        let future: Ship = Ship; 
         match key {
             KeyCode::ArrowLeft => {
                 self.dx -= 1;
@@ -88,6 +89,9 @@ impl Ship {
             }
             _ => {}
         }
+        if !future.is_colliding(laser){
+            Ship = future;
+        }
     }
 
     fn handle_unicode(&mut self, key: char) {
@@ -96,6 +100,15 @@ impl Ship {
             self.next_letter += 1;
             self.num_letters = self.num_letters.saturating_add(&ModNumC::new(1));
         }
+    }
+
+    pub fn is_colliding(&self, laser: &Laser) -> bool{ 
+        for x in laser.laser_iter(){
+            if self.dx == x || self.dy == x{
+                return true;
+            }
+            return false;
+        }   
     }
 }
 
