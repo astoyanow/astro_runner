@@ -104,6 +104,9 @@ impl Ship {
 
     pub fn is_colliding(&self, laser: &Laser) -> bool{ 
         for x in laser.laser_iter(){
+            //not sure if x is a single int or a coord duple
+            //also not sure if x same type as self.dx, structure of the ficntion 
+            //should ben fine though
             if self.dx == x || self.dy == x{
                 return true;
             }
