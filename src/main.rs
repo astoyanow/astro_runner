@@ -23,21 +23,24 @@ static TICKS: AtomicCell<usize> = AtomicCell::new(0);
 fn cpu_loop() -> ! {
     let mut last_tick = 0;
     let mut kernel = Laser::new();
+    let mut player: Ship = Ship::new();
     loop {
-        println!("{last_tick}");
+        //println!("{last_tick}");
         if last_tick % 3 == 0 {
             kernel.is_vertical = false;
             kernel.beam = ['_'; 6];
             kernel.direction = Direction::Right;
+            
         }
         if let Some(key) = LAST_KEY.load() {
             LAST_KEY.store(None);
-            //kernel.key(key);
+            player.key(key);
         }
         let current_tick = TICKS.load();
         if current_tick > last_tick {
             last_tick = current_tick;
             kernel.tick();
+            player.tick();
         }
     }
 }
