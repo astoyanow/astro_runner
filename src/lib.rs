@@ -6,6 +6,11 @@ use pc_keyboard::{DecodedKey, KeyCode};
 use num::traits::SaturatingAdd;
 
 #[derive(Copy,Debug,Clone,Eq,PartialEq)]
+
+pub struct Game {
+    score_count: isize,
+    tick_count: isize
+}
 pub struct Ship {
     letters: [char; BUFFER_WIDTH],
     num_letters: ModNumC<usize, BUFFER_WIDTH>,
