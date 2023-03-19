@@ -4,12 +4,46 @@ use bare_metal_modulo::{ModNumC, MNum, ModNumIterator};
 use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color, is_drawable};
 use pc_keyboard::{DecodedKey, KeyCode};
 use num::traits::SaturatingAdd;
+use pluggable_interrupt_os::println;
+use x86_64::instructions::random;
+use core::{format_args, ops::SubAssign};
 
 #[derive(Copy,Debug,Clone,Eq,PartialEq)]
 
 pub struct Game {
     score_count: isize,
-    tick_count: isize
+    tick_count: isize,
+    col: ModNumC<usize, BUFFER_WIDTH>,
+    row: ModNumC<usize, BUFFER_HEIGHT>,
+}
+impl Game {
+    pub fn new() -> Self{
+        Game { 
+            score_count: 0, 
+            tick_count: 0,
+            col: ModNumC::new(BUFFER_WIDTH / 2),
+            row: ModNumC::new(BUFFER_HEIGHT)
+        }
+
+    }
+    pub fn update_score(&mut self){
+        self.score_count += 1;
+    }
+
+    pub fn tick(&mut self) {
+        self.update_score();
+        //self.draw_current();
+        
+    }
+    /* fn draw_current(&self) {
+        for i in self.score_count.enumerate(){
+            plot(i, self.col.a(), self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+
+        }
+        //plot(self.score_count, self.col.a(), self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+        //plot('A', x, self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
+    }*/
+    
 }
 pub struct Ship {
     letters: [char; BUFFER_WIDTH],
@@ -107,6 +141,9 @@ impl Ship {
         }
     }
 
+    pub fn getx(&self) -> ModNumC<usize, BUFFER_WIDTH>{
+        return self.dx; 
+    }
 }
 
 #[derive(PartialEq)]
@@ -120,7 +157,7 @@ pub struct Laser {
     pub col: ModNumC<usize, BUFFER_WIDTH>,
     pub row: ModNumC<usize, BUFFER_HEIGHT>,
     pub is_vertical: bool,
-    pub direction: Direction
+    pub direction: Direction,
 }
 
 impl Laser {
@@ -137,6 +174,8 @@ impl Laser {
     }
 
     fn draw_laser(&self) {
+        //random funtion for multiple laser spawn??
+        
         for (i, x) in self.laser_iter().enumerate() {
             plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Green, Color::Black));
         }
@@ -153,11 +192,14 @@ impl Laser {
             plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
         }
     }
+    pub fn is_occupied(&self){
+        //watch lecture and possibly copy
+    }
 
     pub fn tick(&mut self){
         self.remove_laser();
         self.update_position();
-        self.draw_laser();
+        self.draw_laser(ship);
     }
 
     fn update_position(&mut self) {
@@ -175,4 +217,5 @@ impl Laser {
             }
         }
     }
+    
 }
