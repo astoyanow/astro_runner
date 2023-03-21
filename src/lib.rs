@@ -1,96 +1,27 @@
 #![cfg_attr(not(test), no_std)]
 
 use bare_metal_modulo::{ModNumC, MNum, ModNumIterator};
-use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color, is_drawable};
+use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color};
 use pc_keyboard::{DecodedKey, KeyCode};
-use num::traits::SaturatingAdd;
 
-#[derive(Copy,Debug,Clone,Eq,PartialEq)]
 pub struct Ship {
-    letters: [char; BUFFER_WIDTH],
-    num_letters: ModNumC<usize, BUFFER_WIDTH>,
-    next_letter: ModNumC<usize, BUFFER_WIDTH>,
-    col: ModNumC<usize, BUFFER_WIDTH>,
-    row: ModNumC<usize, BUFFER_HEIGHT>,
-    dx: ModNumC<usize, BUFFER_WIDTH>,
-    dy: ModNumC<usize, BUFFER_HEIGHT>
+    fill: isize
 }
 
-impl Ship {
-    pub fn new() -> Self {
-        Ship {
-            letters: ['A'; BUFFER_WIDTH],
-            num_letters: ModNumC::new(1),
-            next_letter: ModNumC::new(1),
-            col: ModNumC::new(BUFFER_WIDTH / 2),
-            row: ModNumC::new(BUFFER_HEIGHT / 2),
-            dx: ModNumC::new(0),
-            dy: ModNumC::new(0)
-        }
-    }
-
-    fn letter_columns(&self) -> impl Iterator<Item=usize> {
-        ModNumIterator::new(self.col)
-            .take(self.num_letters.a())
-            .map(|m| m.a())
-    }
-
-    pub fn tick(&mut self) {
-        self.clear_current();
-        self.update_location();
-        self.draw_current();
-    }
-
-    fn clear_current(&self) {
-        for x in self.letter_columns() {
-            plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
-        }
-    }
-
-    fn update_location(&mut self) {
-        self.col += self.dx;
-        self.row += self.dy;
-    }
-
-    fn draw_current(&self) {
-        for (i, x) in self.letter_columns().enumerate() {
-            plot(self.letters[i], x, self.row.a(), ColorCode::new(Color::Cyan, Color::Black));
-        }
-    }
-
-    pub fn key(&mut self, key: DecodedKey) {
-        match key {
-            DecodedKey::RawKey(code) => self.handle_raw(code),
-            DecodedKey::Unicode(c) => self.handle_unicode(c)
-        }
-    }
-
-    fn handle_raw(&mut self, key: KeyCode) {
-        match key {
-            KeyCode::ArrowLeft => {
-                self.dx -= 1;
-            }
-            KeyCode::ArrowRight => {
-                self.dx += 1;
-            }
-            KeyCode::ArrowUp => {
-                self.dy -= 1;
-            }
-            KeyCode::ArrowDown => {
-                self.dy += 1;
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_unicode(&mut self, key: char) {
-        if is_drawable(key) {
-            self.letters[self.next_letter.a()] = key;
-            self.next_letter += 1;
-            self.num_letters = self.num_letters.saturating_add(&ModNumC::new(1));
-        }
+impl Default for Ship {
+    fn default() -> Self {
+        Self { fill: 0 }
     }
 }
+
+pub struct Game {
+    tick_count: isize,
+    ship: Ship,
+    lives: isize,
+    lasers: [Laser; BUFFER_HEIGHT * BUFFER_WIDTH]
+
+}
+
 
 #[derive(PartialEq)]
 pub enum Direction {
@@ -103,37 +34,64 @@ pub struct Laser {
     pub col: ModNumC<usize, BUFFER_WIDTH>,
     pub row: ModNumC<usize, BUFFER_HEIGHT>,
     pub is_vertical: bool,
-    pub direction: Direction
+    pub direction: Direction,
 }
 
 impl Laser {
     pub fn new() -> Self {
         Laser {
             beam: ['|'; 6],
-            beam_len: ModNumC::new(2),
+            beam_len: ModNumC::new(1),
             col: ModNumC::new(BUFFER_WIDTH/2),
             row: ModNumC::new(BUFFER_HEIGHT/2),
-            is_vertical: true,
+            is_vertical: false,
             direction: Direction::Down,
         }
 
     }
 
-    fn draw_laser(&self) {
-        for (i, x) in self.laser_iter().enumerate() {
-            plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Green, Color::Black));
+    fn draw_laser(&mut self) {
+        self.orient_laser();
+        if self.is_vertical{
+            for (i, x) in self.laser_iter_vertical().enumerate() {
+                plot(self.beam[i], self.col.a(), x, ColorCode::new(Color::Red, Color::Black));
+            }
+        } else {
+            for (i, x) in self.laser_iter_horizontal().enumerate() {
+                plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Red, Color::Black));
+            }
         }
     }
 
-    fn laser_iter(&self) -> impl Iterator<Item=usize> {
+    fn laser_iter_horizontal(&self) -> impl Iterator<Item=usize> {
         ModNumIterator::new(self.col)
             .take(self.beam_len.a())
             .map(|m| m.a())
     }
 
+    fn laser_iter_vertical(&self) -> impl Iterator<Item=usize> {
+        ModNumIterator::new(self.row)
+            .take(self.beam_len.a())
+            .map(|m| m.a())
+    }
+
+    fn orient_laser(&mut self) {
+        if self.is_vertical {
+            self.beam = ['|'; 6];
+        } else {
+            self.beam = ['_'; 6];
+        }
+    }
+
     fn remove_laser(&self) {
-        for x in self.laser_iter() {
-            plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
+        if self.is_vertical{
+            for x in self.laser_iter_vertical() {
+                plot(' ', self.col.a(), x, ColorCode::new(Color::Black, Color::Black));
+            }
+        } else {
+            for x in self.laser_iter_horizontal() {
+                plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
+            }
         }
     }
 
@@ -156,6 +114,32 @@ impl Laser {
             } else {
                 self.col -= 1
             }
+        }
+    }
+
+    pub fn key(&mut self, key: DecodedKey) {
+        match key {
+            DecodedKey::RawKey(code) => self.handle_raw(code),
+            DecodedKey::Unicode(_) => {}
+            
+        }
+    }
+
+    fn handle_raw(&mut self, key: KeyCode) {
+        match key {
+            KeyCode::ArrowLeft => {
+                self.col -= 1;
+            }
+            KeyCode::ArrowRight => {
+                self.col += 1;
+            }
+            KeyCode::ArrowUp => {
+                self.row -= 1;
+            }
+            KeyCode::ArrowDown => {
+                self.row += 1;
+            }
+            _ => {}
         }
     }
 }
