@@ -1,7 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
 use bare_metal_modulo::{ModNumC, MNum, ModNumIterator};
-use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color};
+use pluggable_interrupt_os::vga_buffer::{BUFFER_WIDTH, BUFFER_HEIGHT, plot, ColorCode, Color, is_drawable};
 use pc_keyboard::{DecodedKey, KeyCode};
 use num::traits::SaturatingAdd;
 use pluggable_interrupt_os::println;
@@ -46,14 +46,27 @@ impl Game {
     
 }
 pub struct Ship {
-    fill: isize
+    letters: [char; BUFFER_WIDTH],
+    num_letters: ModNumC<usize, BUFFER_WIDTH>,
+    next_letter: ModNumC<usize, BUFFER_WIDTH>,
+    col: ModNumC<usize, BUFFER_WIDTH>,
+    row: ModNumC<usize, BUFFER_HEIGHT>,
+    dx: ModNumC<usize, BUFFER_WIDTH>,
+    dy: ModNumC<usize, BUFFER_HEIGHT>
 }
 
-impl Default for Ship {
-    fn default() -> Self {
-        Self { fill: 0 }
+impl Ship {
+    pub fn new() -> Self {
+        Ship {
+            letters: ['A'; BUFFER_WIDTH],
+            num_letters: ModNumC::new(1),
+            next_letter: ModNumC::new(1),
+            col: ModNumC::new(BUFFER_WIDTH / 2),
+            row: ModNumC::new(BUFFER_HEIGHT / 2),
+            dx: ModNumC::new(0),
+            dy: ModNumC::new(0)
+        }
     }
-}
 
     fn letter_columns(&self) -> impl Iterator<Item=usize> {
         ModNumIterator::new(self.col)
@@ -133,7 +146,6 @@ impl Default for Ship {
     }
 }
 
-
 #[derive(PartialEq)]
 pub enum Direction {
     Up, Down, Left, Right
@@ -146,71 +158,48 @@ pub struct Laser {
     pub row: ModNumC<usize, BUFFER_HEIGHT>,
     pub is_vertical: bool,
     pub direction: Direction,
-    pub direction: Direction,
 }
 
 impl Laser {
     pub fn new() -> Self {
         Laser {
             beam: ['|'; 6],
-            beam_len: ModNumC::new(1),
+            beam_len: ModNumC::new(2),
             col: ModNumC::new(BUFFER_WIDTH/2),
             row: ModNumC::new(BUFFER_HEIGHT/2),
-            is_vertical: false,
+            is_vertical: true,
             direction: Direction::Down,
         }
 
     }
 
-    fn draw_laser(&mut self) {
-        self.orient_laser();
-        if self.is_vertical{
-            for (i, x) in self.laser_iter_vertical().enumerate() {
-                plot(self.beam[i], self.col.a(), x, ColorCode::new(Color::Red, Color::Black));
-            }
-        } else {
-            for (i, x) in self.laser_iter_horizontal().enumerate() {
-                plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Red, Color::Black));
-            }
+    fn draw_laser(&self) {
+        //random funtion for multiple laser spawn??
+        
+        for (i, x) in self.laser_iter().enumerate() {
+            plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Green, Color::Black));
         }
     }
 
-    fn laser_iter_horizontal(&self) -> impl Iterator<Item=usize> {
+    pub fn laser_iter(&self) -> impl Iterator<Item=usize> {
         ModNumIterator::new(self.col)
             .take(self.beam_len.a())
             .map(|m| m.a())
     }
 
-    fn laser_iter_vertical(&self) -> impl Iterator<Item=usize> {
-        ModNumIterator::new(self.row)
-            .take(self.beam_len.a())
-            .map(|m| m.a())
-    }
-
-    fn orient_laser(&mut self) {
-        if self.is_vertical {
-            self.beam = ['|'; 6];
-        } else {
-            self.beam = ['_'; 6];
-        }
-    }
-
     fn remove_laser(&self) {
-        if self.is_vertical{
-            for x in self.laser_iter_vertical() {
-                plot(' ', self.col.a(), x, ColorCode::new(Color::Black, Color::Black));
-            }
-        } else {
-            for x in self.laser_iter_horizontal() {
-                plot(' ', x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
-            }
+        for (i, x) in self.laser_iter().enumerate() {
+            plot(self.beam[i], x, self.row.a(), ColorCode::new(Color::Black, Color::Black));
         }
+    }
+    pub fn is_occupied(&self){
+        //watch lecture and possibly copy
     }
 
     pub fn tick(&mut self){
         self.remove_laser();
         self.update_position();
-        self.draw_laser(ship);
+        self.draw_laser();
     }
 
     fn update_position(&mut self) {
@@ -228,30 +217,22 @@ impl Laser {
             }
         }
     }
-
     pub fn key(&mut self, key: DecodedKey) {
         match key {
             DecodedKey::RawKey(code) => self.handle_raw(code),
-            DecodedKey::Unicode(_) => {}
-            
+            DecodedKey::Unicode(c) => self.handle_unicode(c)
         }
     }
 
-    fn handle_raw(&mut self, key: KeyCode) {
-        match key {
-            KeyCode::ArrowLeft => {
-                self.col -= 1;
-            }
-            KeyCode::ArrowRight => {
-                self.col += 1;
-            }
-            KeyCode::ArrowUp => {
-                self.row -= 1;
-            }
-            KeyCode::ArrowDown => {
-                self.row += 1;
-            }
-            _ => {}
-        }
+    fn handle_unicode(&mut self, key: char) {
+        //
     }
+
+    fn handle_raw(&mut self, key: KeyCode) {
+        //let future: &mut Ship = self; 
+        
+        
+    }
+
+    
 }
