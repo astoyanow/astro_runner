@@ -32,6 +32,9 @@ impl Game {
 
     pub fn tick(&mut self) {
         self.update_score();
+
+        //G-hop is going to work on drawing this on the screen
+        
         //self.draw_current();
         
     }
