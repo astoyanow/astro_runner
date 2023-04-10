@@ -210,7 +210,7 @@ impl Laser {
     pub fn tick(&mut self){
         self.remove_laser();
         self.update_position();
-        self.draw_laser(ship);
+        self.draw_laser();
     }
 
     fn update_position(&mut self) {
