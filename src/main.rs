@@ -3,8 +3,8 @@
 
 use pc_keyboard::DecodedKey;
 use pluggable_interrupt_os::HandlerTable;
-use pluggable_interrupt_os::vga_buffer::clear_screen;
-use astro_runner::{Laser, Ship, Direction, Game};
+use pluggable_interrupt_os::{vga_buffer::clear_screen, println};
+use astro_runner::Game;
 use crossbeam::atomic::AtomicCell;
 
 #[no_mangle]
@@ -22,27 +22,20 @@ static TICKS: AtomicCell<usize> = AtomicCell::new(0);
 
 fn cpu_loop() -> ! {
     let mut last_tick = 0;
-    let mut kernel = Laser::new();
-    let mut player: Ship = Ship::new();
     let mut game: Game = Game::new(); 
+    let mut active_lasers = 0;
     loop {
-        //println!("{last_tick}");
-        if last_tick % 3 == 0 {
-            kernel.is_vertical = false;
-            kernel.beam = ['_'; 6];
-            kernel.direction = Direction::Right;
-            
+        if last_tick % 500 == 0 {
+            println!("{:?}", game.lasers);
         }
         if let Some(key) = LAST_KEY.load() {
             LAST_KEY.store(None);
-            player.key(key);
+            game.ship.key(key);
         }
         let current_tick = TICKS.load();
         if current_tick > last_tick {
             last_tick = current_tick;
             game.tick();
-            kernel.tick();
-            player.tick();
         }
     }
 }

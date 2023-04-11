@@ -16,6 +16,7 @@ pic8259 = "0.10.1"
 pc-keyboard = "0.5.1"
 pluggable_interrupt_os = "0.4"
 bare_metal_modulo = "1"
+rand = { version = "0.8.5", features = ["small_rng"], default-features = false }
 
 [dependencies.num]
 version = "0.4.0"
