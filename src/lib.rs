@@ -10,12 +10,13 @@ use rand::RngCore;
 #[derive(Clone, Copy)]
 pub struct Game {
     score_count: isize,
-    tick_count: isize,
+    tick_count: usize,
     col: ModNumC<usize, BUFFER_WIDTH>,
     row: ModNumC<usize, BUFFER_HEIGHT>,
     pub ship: Ship,
-    pub lasers: [Laser; 1]
+    pub lasers: [Laser; 5]
 }
+
 impl Game {
     pub fn new() -> Self{
         Game { 
@@ -24,7 +25,7 @@ impl Game {
             col: ModNumC::new(BUFFER_WIDTH / 2),
             row: ModNumC::new(BUFFER_HEIGHT),
             ship: Ship::new(),
-            lasers: [Laser::new(); 1]
+            lasers: [Laser::new(); 5]
         }
 
     }
@@ -32,12 +33,10 @@ impl Game {
         self.score_count += 1;
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self, state:u64) {
         self.update_score();
         self.ship.tick();
-        for mut laser in self.lasers{
-            laser.tick();
-        }
+        self.lasers[self.tick_count % self.lasers.len()].tick(state);
         //self.draw_current();
         
     }
@@ -59,7 +58,8 @@ pub struct Ship {
     col: ModNumC<usize, BUFFER_WIDTH>,
     row: ModNumC<usize, BUFFER_HEIGHT>,
     dx: ModNumC<usize, BUFFER_WIDTH>,
-    dy: ModNumC<usize, BUFFER_HEIGHT>
+    dy: ModNumC<usize, BUFFER_HEIGHT>,
+    pub key_strokes: usize
 }
 
 impl Ship {
@@ -69,7 +69,8 @@ impl Ship {
             col: ModNumC::new(BUFFER_WIDTH / 2),
             row: ModNumC::new(BUFFER_HEIGHT / 2),
             dx: ModNumC::new(0),
-            dy: ModNumC::new(0)
+            dy: ModNumC::new(0),
+            key_strokes: 0
         }
     }
 
@@ -99,6 +100,7 @@ impl Ship {
             DecodedKey::RawKey(code) => self.handle_raw(code),
             DecodedKey::Unicode(c) => self.handle_unicode(c)
         }
+        self.key_strokes += 1;
     }
 
     fn handle_raw(&mut self, key: KeyCode) {
@@ -217,12 +219,20 @@ impl Laser {
         }
     }
 
-    fn randomize_laser_pos(&mut self, dir: Direction){
-        let mut rng = SmallRng::seed_from_u64(3);
+    fn randomize_laser_pos(&mut self, state: u64){
+        let mut rng = SmallRng::seed_from_u64(state);
         let mut new_row = 0;
         let mut new_col = 0;
+        let mut dir = Direction::Left;
+        match 1 + rng.next_u32() as usize % 4 {
+            1 => {dir = Direction::Down}
+            2 => {dir = Direction::Up}
+            3 => {dir = Direction::Left}
+            4 => {dir = Direction::Right}
+            _ => {}
+        }
         match dir {
-            Direction::Down => { new_col = 1 + rng.next_u32() as usize % (BUFFER_WIDTH - 1);}
+            Direction::Down => {new_col = 1 + rng.next_u32() as usize % (BUFFER_WIDTH - 1);}
             Direction::Up => {
                 new_col = 1 + rng.next_u32() as usize % (BUFFER_WIDTH - 1);
                 new_row = BUFFER_WIDTH - 1;
@@ -231,10 +241,12 @@ impl Laser {
                 new_row = 1 + rng.next_u32() as usize % (BUFFER_HEIGHT - 1);
                 new_col = BUFFER_HEIGHT - 1;
             }
-            _ => { new_row = 1 + rng.next_u32() as usize % (BUFFER_HEIGHT - 1);}
+            Direction::Right => { new_row = 1 + rng.next_u32() as usize % (BUFFER_HEIGHT - 1);}
         }
         self.col = ModNumC::new(new_col);
         self.row = ModNumC::new(new_row);
+        self.direction = dir;
+        self.set_vertical();
     }
 
     fn remove_laser(&self) {
@@ -249,12 +261,46 @@ impl Laser {
         }
     }
 
-    pub fn tick(&mut self){     
+    fn reset_laser(&mut self){
+        match self.direction {
+            Direction::Up => {
+                if self.row == 1 {
+                    self.location_set = false;
+                }
+            },
+            Direction::Down => {
+                if self.row == BUFFER_HEIGHT - 2 {
+                    self.location_set = false;
+                }
+            },
+            Direction::Left => {
+                if self.col == 1 {
+                    self.location_set = false;
+                }
+            },
+            Direction::Right => {
+                if self.col == BUFFER_WIDTH - 2 {
+                    self.location_set = false;
+                }
+            },
+        }
+    }
+
+    fn set_vertical(&mut self) {
+        if self.direction == Direction::Up || self.direction == Direction::Down{
+            self.is_vertical = true;
+        } else {
+            self.is_vertical = false;
+        }
+    }
+
+    pub fn tick(&mut self, state: u64){     
         if !self.location_set{
-            self.randomize_laser_pos(self.direction);
+            self.randomize_laser_pos(state);
             self.location_set = true;
         }
         self.remove_laser();
+        self.reset_laser();
         self.update_position();
         self.draw_laser();
     }
