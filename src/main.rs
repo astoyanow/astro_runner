@@ -6,6 +6,8 @@ use pluggable_interrupt_os::HandlerTable;
 use pluggable_interrupt_os::vga_buffer::clear_screen;
 use astro_runner::Game;
 use crossbeam::atomic::AtomicCell;
+use rand::SeedableRng;
+use rand::rngs::SmallRng;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -22,17 +24,17 @@ static TICKS: AtomicCell<usize> = AtomicCell::new(0);
 
 fn cpu_loop() -> ! {
     let mut last_tick = 0;
-    let mut game: Game = Game::new(); 
+    let rng = SmallRng::seed_from_u64(4);
+    let mut game: Game = Game::new(rng); 
     loop {
         if let Some(key) = LAST_KEY.load() {
             LAST_KEY.store(None);
-            game.ship.key(key);
+            game.key(key);
         }
         let current_tick = TICKS.load();
         if current_tick > last_tick {
             last_tick = current_tick;
-            let state: u64 = (last_tick % 13 * current_tick / 5 + game.ship.key_strokes).try_into().unwrap();
-            game.tick(state);
+            game.tick();
         }
     }
 }
