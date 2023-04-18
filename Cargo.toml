@@ -1,7 +1,7 @@
 [package]
 name = "astro_runner"
 version = "0.3.1"
-authors = ["astoyanow <astoyanow13@gmail.com>"]
+authors = ["astoyanow <astoyanow13@gmail.com>", "ethan-thomas0223", "G-hop7"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
