@@ -127,6 +127,9 @@ impl Ship {
     fn update_location(&mut self) {
         self.col += self.dx;
         self.row += self.dy;
+        if self.row == 0 {
+            self.row.replace(BUFFER_HEIGHT - 1);
+        }
         self.dx = ModNumC::new(0);
         self.dy = ModNumC::new(0);
     }
